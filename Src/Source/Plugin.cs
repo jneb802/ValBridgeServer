@@ -6,12 +6,12 @@ using BepInEx.Configuration;
 using BepInEx.Logging;
 using HarmonyLib;
 
-namespace Template
+namespace ValBridgeServer
 {
     [BepInPlugin(ModGUID, ModName, ModVersion)]
-    public class TemplatePlugin : BaseUnityPlugin
+    public class ValBridgeServerPlugin : BaseUnityPlugin
     {
-        private const string ModName = "Template";
+        private const string ModName = "ValBridgeServer";
         private const string ModVersion = "1.0.0";
         private const string Author = "modAuthorName";
         private const string ModGUID = Author + "." + ModName;
@@ -24,7 +24,8 @@ namespace Template
 
         public void Awake()
         {
-            BepinexConfiguration.Instance.Config = Config;
+            // TODO: re-implement bepinex configuration for the mod
+            // BepinexConfiguration.Instance.Config = Config;
             Assembly assembly = Assembly.GetExecutingAssembly();
             HarmonyInstance.PatchAll(assembly);
             SetupWatcher();
