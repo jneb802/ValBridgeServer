@@ -20,3 +20,6 @@ logoutput.log
 
 # Rider
 .idea/
+
+# Agent docs
+.agent_docs/
