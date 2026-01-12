@@ -17,3 +17,6 @@ logoutput.log
 # Temporary files
 *.tmp
 *.temp 
+
+# Rider
+.idea/
