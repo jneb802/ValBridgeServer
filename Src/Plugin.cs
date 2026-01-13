@@ -3,6 +3,7 @@ using System.IO;
 using BepInEx;
 using BepInEx.Logging;
 using Lib.GAB;
+using Lib.GAB.Server;
 using Newtonsoft.Json;
 using ValBridgeServer.Tools;
 
@@ -45,18 +46,17 @@ namespace ValBridgeServer
                 var config = ReadBridgeConfig();
                 ModLogger.LogInfo($"GABP config loaded - GameId: {config.GameId}, Port: {config.Port}");
 
-                // Create tools instance with [Tool] attributed methods
-                var tools = new ValheimTools();
-
                 // Start GABP server using external config (port/token from GABS)
-                _server = Gabp.CreateServerWithInstanceAndExternalConfig(
+                _server = Gabp.CreateServerWithExternalConfig(
                     "Valheim",
                     ModVersion,
-                    tools,
                     config.Port,
                     config.Token,
                     config.GameId
                 );
+
+                // Register tool classes (one per Valheim class)
+                _server.Tools.RegisterToolsFromInstance(new PlayerTools());
 
                 // Register event channels
                 _server.Events.RegisterChannel("player/death", "Player death events");

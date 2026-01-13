@@ -1,19 +1,18 @@
 using System;
-using UnityEngine;
 using Lib.GAB.Tools;
 
 namespace ValBridgeServer.Tools
 {
     /// <summary>
-    /// Valheim-specific tools for GABP server
+    /// Tools for the Player class (Player.m_localPlayer)
     /// </summary>
-    public class ValheimTools
+    public class PlayerTools
     {
         /// <summary>
         /// Get the player's current health statistics
         /// </summary>
-        [Tool("get_player_health", Description = "Get player's current health statistics")]
-        public object GetPlayerHealth()
+        [Tool("player_get_health", Description = "Get player's current health statistics")]
+        public object GetHealth()
         {
             try
             {
@@ -53,8 +52,8 @@ namespace ValBridgeServer.Tools
         /// <summary>
         /// Get the player's world position
         /// </summary>
-        [Tool("get_player_position", Description = "Get player's world position coordinates")]
-        public object GetPlayerPosition()
+        [Tool("player_get_position", Description = "Get player's world position coordinates")]
+        public object GetPosition()
         {
             try
             {
