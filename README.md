@@ -1,129 +1,134 @@
-# Valheim macOS Modding Template
+# ValBridgeServer
 
-A template for creating Valheim mods with BepInEx on macOS. Includes automated build scripts, log monitoring, and a rename utility for quick mod creation.
+A Valheim BepInEx mod that enables AI agents to control and inspect Valheim through the [GABP (Game Agent Bridge Protocol)](https://github.com/jneb802/GABS/blob/main/docs/GABP.md). Built using forked verions of [@pardeike](https://github.com/pardeike)'s [GABS](https://github.com/pardeike/GABS) and [Lib.GAB](https://github.com/pardeike/Lib.GAB) frameworks that are adapted to work with Valheim.
 
-## 📁 Project Structure
+**Note**: Tested with Claude Code. Not compatible with Cursor as it doesn't dynamically reload MCP tools.
+
+## 🏗️ Architecture
 
 ```
-Template/
-├── Source/
-│   ├── Plugin.cs              # Main BepInEx plugin class
-│   ├── BepinExConfiguration.cs # Configuration helper
-│   └── Template.cs             # Template class
-├── Properties/
-│   └── AssemblyInfo.cs         # Assembly metadata
-├── Template.csproj             # C# project file
-├── Environment.props           # Valheim/BepInEx path configuration
-├── build.sh                    # Build & deploy automation
-├── monitor-logs.sh             # Log monitoring utility
-├── stop-monitor.sh             # Stop log monitoring
-├── rename-mod.sh               # Template renaming utility
-└── README.md                   # This file
+AI Agent (Claude Code)
+  ↕ MCP Protocol
+GABS (orchestration server)
+  ↕ GABP Protocol
+ValBridgeServer (this mod - GABP server)
+  ↓ Uses
+Valheim Game APIs
 ```
 
-## 🛠️ Prerequisites
+**Important**: ValBridgeServer acts as a GABP **server** (listens for connections), while GABS acts as a GABP **client** (connects to your mod).
 
-- **macOS** with Valheim installed via Steam
-- **.NET SDK 9.0+** (`brew install dotnet`)
-- **BepInEx** installed in Valheim directory
-- **Steam Valheim** at standard location: `~/Library/Application Support/Steam/steamapps/common/Valheim`
-- **Publicized Assemblies** via the [AssemblyRePublicizer](https://github.com/shibowo/AssemblyRePublicizer)
-- **Jotunn** installed in the Valheim BepinEx folder
+## 🔗 Required Components
 
-### macOS BepInEx Installation
+This mod requires two other components to function:
 
-1. **Setup BepInEx folder** - Download [BepInExPack Valheim](https://thunderstore.io/c/valheim/p/denikson/BepInExPack_Valheim/) (Windows version) and install in the Valheim directory
-2. **Download** [BepInEx v5.4.23.1 for MacOS](https://github.com/BepInEx/BepInEx/releases/tag/v5.4.23.1)
-3. **Delete** `doorstop_config.ini` from Valheim directory
-4. **Delete** contents of Windows `BepInEx/core/` folder (if exists)
-5. **Copy** all files from macOS `BepInEx/core/` → your `Valheim/BepInEx/core/`
-6. **Copy** `libdoorstop.dylib` from macOS BepInEx zip → your `Valheim/` directory
-7. **Download** [run_bepinex.sh](https://gist.github.com/allquixotic/0530bde2247415a676288e8f62592a4d) → put in your `Valheim/` directory
-8. **Launch modded Valheim**: Open terminal and cd to Valheim directory
+1. **[Lib.GAB](https://github.com/jneb802/Lib.GAB)** - .NET library implementing the GABP protocol
+2. **[GABS](https://github.com/jneb802/GABS)** - Game Agent Bridge Server that connects AI agents to games
+
+## ✨ Current Features
+
+### Tools
+- **`get_player_health`** - Returns current health, max health, and health percentage
+- **`get_player_position`** - Returns player's world coordinates (x, y, z)
+
+### Event Channels
+- `player/death` - Player death notifications
+- `player/health_changed` - Health change events
+
+## 📦 Installation
+
+### Prerequisites
+- **Valheim** via Steam
+- **BepInEx 5.4.2200+** - For macOS, follow [this guide](https://www.reddit.com/r/valheim/comments/1dcko3i/guide_running_mods_on_macos/) to set up modded Valheim with `run_bepinex.sh`
+- **.NET SDK** for building
+- **[GABS](https://github.com/jneb802/GABS)** installed
+- **[Lib.GAB](https://github.com/jneb802/Lib.GAB)** - Clone and build, reference the DLL
+
+### Steps
+
+1. **Build and Install Dependencies**
    ```bash
-   chmod +x run_bepinex.sh
-   ./run_bepinex.sh
+   # Clone and build Lib.GAB
+   git clone https://github.com/jneb802/Lib.GAB.git
+   cd Lib.GAB/Lib.GAB
+   dotnet build
+   cd ../..
+   
+   # Clone and build ValBridgeServer
+   git clone https://github.com/jneb802/ValBridgeServer.git
+   cd ValBridgeServer
+   dotnet build
+   
+   # Copy all required DLLs to BepInEx plugins
+   cp bin/Debug/ValBridgeServer.dll "<Valheim>/BepInEx/plugins/"
+   cp ../Lib.GAB/Lib.GAB/bin/Debug/netstandard2.0/Lib.GAB.dll "<Valheim>/BepInEx/plugins/"
+   cp bin/Debug/Newtonsoft.Json.dll "<Valheim>/BepInEx/plugins/"
    ```
 
-**Note**: Requires Rosetta 2 for Intel compatibility. Install with: `softwareupdate --install-rosetta`
+2. **Configure GABS for Valheim** ([Configuration Guide](https://github.com/jneb802/GABS/blob/main/docs/CONFIGURATION.md))
+   
+   For vanilla Valheim:
+   ```bash
+   gabs games add valheim --steam-app-id 892970
+   ```
+   
+   For modded Valheim (macOS with BepInEx):
+   ```bash
+   gabs games add valheim
+   # When prompted, select "DirectPath" mode
+   # Target: /path/to/Valheim/run_bepinex.sh
+   # Working Directory: /path/to/Valheim
+   # Stop Process Name: valheim.x86_64
+   ```
+   
+   Example config:
+   ```
+   Launch Mode: DirectPath
+   Target: ~/Library/Application Support/Steam/steamapps/common/Valheim/run_bepinex.sh
+   Stop Process Name: valheim.x86_64
+   ```
 
-*Source: [GUIDE] Running Mods on MacOS - [Reddit](https://www.reddit.com/r/valheim/comments/1dcko3i/guide_running_mods_on_macos/)*
+3. **Add GABS MCP Server**
+   
+   Add to your MCP settings (e.g., Claude Desktop `config.json`):
+   ```json
+   {
+     "mcpServers": {
+       "gabs": {
+         "command": "gabs",
+         "args": ["server"]
+       }
+     }
+   }
+   ```
 
-## 🚀 How to use this template
+4. **Launch and Connect**
 
-### 1. **Create Your Mod**
-```bash
-# Clone or copy this template
-cd Template
+   In Claude Code:
+   ```
+   Tell Claude to launch Valheim using GABS
+   Wait for Valheim to start, launch into world. 
+   Tell Claude to use game connect tool.
+   Tools should sync. 
+   Now you can access any of the available tools.
+   ```
 
-# Rename template to your mod (e.g., "AwesomeHammer")
-./rename-mod.sh AwesomeHammer
-
-# Or with custom author
-./rename-mod.sh AwesomeHammer YourUsername
 ```
+AI: "What's the player's current health?"
+> Uses get_player_health
+> Returns: { "success": true, "health": 25.0, "maxHealth": 25.0, "healthPercentage": 100.0 }
 
-### 2. **Verify Paths**
-Check `Environment.props` and update the Valheim path if needed:
-```xml
-<VALHEIM_INSTALL>/Users/USERNAME/Library/Application Support/Steam/steamapps/common/Valheim</VALHEIM_INSTALL>
-```
-
-### 3. **Build & Test**
-```bash
-# Build and deploy to BepInEx
-./build.sh
-
-# Build, deploy, and launch Valheim
-./build.sh run
-
-# Build, deploy, and start log monitoring
-./build.sh monitor
-
-# Build, deploy, launch game, and monitor logs
-./build.sh run monitor
-```
-
-## 🔧 Included Scripts
-
-### **`build.sh`** - Build & Deploy Automation
-```bash
-./build.sh [release] [run] [monitor]
-```
-- Builds your mod (Debug or Release)
-- Deploys DLL to BepInEx plugins folder
-- Optionally launches Valheim and/or starts log monitoring
-
-### **`rename-mod.sh`** - Template Transformer
-```bash
-./rename-mod.sh NewModName [Author]
-```
-- Renames all Template references to your mod name
-- Updates namespaces, classes, files, and GUIDs
-- Creates a backup and tests the build
-
-### **`monitor-logs.sh`** - Real-time Log Streaming
-```bash
-./monitor-logs.sh
-```
-- Streams BepInEx logs with color-coded output
-- Saves logs to `logoutput.log` for IDE access
-- Clears log file on each session start
-
-### **`stop-monitor.sh`** - Stop Log Monitoring
-```bash
-./stop-monitor.sh
-```
-- Stops all running log monitor processes
-
-### **Environment.props**
-Contains all Valheim and BepInEx paths:
-```xml
-<VALHEIM_INSTALL>/path/to/valheim</VALHEIM_INSTALL>
-<BEPINEX_PATH>$(VALHEIM_INSTALL)/BepInEx</BEPINEX_PATH>
-```
+AI: "Where is the player?"
+> Uses get_player_position  
+> Returns: { "success": true, "position": { "x": 123.45, "y": 50.0, "z": -67.89 } }
 ```
 
 ## 📄 License
 
-This template is provided as-is for Valheim modding. Respect BepInEx and Valheim's terms of service when distributing mods.
+MIT License - see LICENSE file for details.
+
+## 🔗 Related Projects
+
+- **[GABS](https://github.com/jneb802/GABS)** - Game Agent Bridge Server (orchestrator)
+- **[Lib.GAB](https://github.com/jneb802/Lib.GAB)** - GABP protocol library for .NET
+- **[GABP Specification](https://github.com/jneb802/GABS/blob/main/docs/GABP.md)** - Protocol documentation
