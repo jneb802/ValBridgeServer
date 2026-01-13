@@ -78,14 +78,14 @@ This mod requires two other components to function:
    # When prompted, select "DirectPath" mode
    # Target: /path/to/Valheim/run_bepinex.sh
    # Working Directory: /path/to/Valheim
-   # Stop Process Name: valheim.x86_64
+   # Stop Process Name: Valheim
    ```
    
    Example config:
    ```
    Launch Mode: DirectPath
    Target: ~/Library/Application Support/Steam/steamapps/common/Valheim/run_bepinex.sh
-   Stop Process Name: valheim.x86_64
+   Stop Process Name: Valheim
    ```
 
 3. **Add GABS MCP Server**
