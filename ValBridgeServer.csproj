@@ -36,4 +36,12 @@
         <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     </ItemGroup>
 
+    <!-- Local DLL References -->
+    <ItemGroup>
+        <Reference Include="Lib.GAB">
+            <HintPath>lib/Lib.GAB.dll</HintPath>
+            <Private>true</Private>
+        </Reference>
+    </ItemGroup>
+
 </Project>
