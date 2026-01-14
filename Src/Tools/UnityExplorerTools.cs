@@ -90,6 +90,22 @@ namespace ValBridgeServer.Tools
             foreach (var key in deadKeys)
                 _objectCache.Remove(key);
         }
+        
+        private UnityEngine.Object? GetOrFindObject(int instanceId)
+        {
+            var obj = GetCachedObject(instanceId);
+            
+            if (obj == null)
+            {
+                obj = Resources.FindObjectsOfTypeAll<UnityEngine.Object>()
+                    .FirstOrDefault(o => o.GetInstanceID() == instanceId);
+                
+                if (obj != null)
+                    CacheObject(obj);
+            }
+            
+            return obj;
+        }
 
         private object SerializeGameObject(GameObject go, bool includeComponents = true)
         {
@@ -104,12 +120,13 @@ namespace ValBridgeServer.Tools
                 ["activeInHierarchy"] = go.activeInHierarchy,
                 ["layer"] = LayerMask.LayerToName(go.layer),
                 ["tag"] = go.tag,
-                ["isStatic"] = go.isStatic
+                ["isStatic"] = go.isStatic,
+                ["childCount"] = go.transform.childCount
             };
             
             if (includeComponents)
             {
-                var components = go.GetComponents<Component>()
+                result["components"] = go.GetComponents<Component>()
                     .Where(c => c != null)
                     .Select(c => new Dictionary<string, object?>
                     {
@@ -119,10 +136,7 @@ namespace ValBridgeServer.Tools
                         ["enabled"] = (c is Behaviour b) ? b.enabled : (bool?)null
                     })
                     .ToList();
-                result["components"] = components;
             }
-            
-            result["childCount"] = go.transform.childCount;
             
             return result;
         }
@@ -209,15 +223,12 @@ namespace ValBridgeServer.Tools
             
             var type = value.GetType();
             
-            // Primitives and strings
             if (type.IsPrimitive || value is string || value is decimal)
                 return value;
             
-            // Enums
             if (type.IsEnum)
                 return value.ToString();
             
-            // Unity types
             if (value is Vector3 v3)
                 return new { x = v3.x, y = v3.y, z = v3.z };
             if (value is Vector2 v2)
@@ -227,19 +238,15 @@ namespace ValBridgeServer.Tools
             if (value is Color c)
                 return new { r = c.r, g = c.g, b = c.b, a = c.a };
             
-            // Unity objects
             if (value is UnityEngine.Object unityObj)
             {
-                if (unityObj == null) return null; // Destroyed
+                if (unityObj == null) return null;
                 CacheObject(unityObj);
                 return new { instanceId = unityObj.GetInstanceID(), type = type.Name, name = unityObj.name };
             }
             
-            // Collections (limited)
             if (depth > 0 && value is IList list && list.Count <= 20)
-            {
                 return list.Cast<object>().Select(item => SerializeValue(item, depth - 1)).ToList();
-            }
             
             return new { type = type.Name, value = value.ToString() };
         }
@@ -490,16 +497,7 @@ namespace ValBridgeServer.Tools
             [ToolParameter(Description = "Instance ID of the object (from previous search/scene results)")] int instanceId,
             [ToolParameter(Description = "Include member values (fields/properties)")] bool includeMembers = true)
         {
-            var obj = GetCachedObject(instanceId);
-            
-            if (obj == null)
-            {
-                obj = Resources.FindObjectsOfTypeAll<UnityEngine.Object>()
-                    .FirstOrDefault(o => o.GetInstanceID() == instanceId);
-                
-                if (obj != null)
-                    CacheObject(obj);
-            }
+            var obj = GetOrFindObject(instanceId);
             
             if (obj == null)
                 return new { success = false, error = $"Object with instanceId {instanceId} not found or was destroyed" };
@@ -565,16 +563,7 @@ namespace ValBridgeServer.Tools
             [ToolParameter(Description = "Component type name (e.g., 'Rigidbody', 'Player', 'Character')")] string componentType,
             [ToolParameter(Description = "Include member values (fields/properties)")] bool includeMembers = true)
         {
-            var obj = GetCachedObject(gameObjectInstanceId);
-            
-            if (obj == null)
-            {
-                obj = Resources.FindObjectsOfTypeAll<GameObject>()
-                    .FirstOrDefault(o => o.GetInstanceID() == gameObjectInstanceId);
-                
-                if (obj != null)
-                    CacheObject(obj);
-            }
+            var obj = GetOrFindObject(gameObjectInstanceId);
             
             if (obj is not GameObject go)
                 return new { success = false, error = $"GameObject with instanceId {gameObjectInstanceId} not found or was destroyed" };
@@ -621,16 +610,7 @@ namespace ValBridgeServer.Tools
             [ToolParameter(Description = "Include components in child data")] bool includeComponents = false,
             [ToolParameter(Description = "Maximum number of children to return")] int maxResults = 50)
         {
-            var obj = GetCachedObject(parentInstanceId);
-            
-            if (obj == null)
-            {
-                obj = Resources.FindObjectsOfTypeAll<GameObject>()
-                    .FirstOrDefault(o => o.GetInstanceID() == parentInstanceId);
-                
-                if (obj != null)
-                    CacheObject(obj);
-            }
+            var obj = GetOrFindObject(parentInstanceId);
             
             if (obj is not GameObject go)
                 return new { success = false, error = $"GameObject with instanceId {parentInstanceId} not found or was destroyed" };
