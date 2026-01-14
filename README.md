@@ -25,11 +25,28 @@ This mod requires two other components to function:
 1. **[Lib.GAB](https://github.com/jneb802/Lib.GAB)** - .NET library implementing the GABP protocol
 2. **[GABS](https://github.com/jneb802/GABS)** - Game Agent Bridge Server that connects AI agents to games
 
-## ✨ Current Features
+## ✨ Available Tools
 
-### Tools
-- **`get_player_health`** - Returns current health, max health, and health percentage
-- **`get_player_position`** - Returns player's world coordinates (x, y, z)
+### Player Tools
+- **`player_get_health`** - Get player's current health statistics (health, max health, percentage)
+- **`player_get_position`** - Get player's world position coordinates (x, y, z)
+
+### Terminal Tools
+- **`run_command`** - Execute Valheim console commands (e.g., `spawn Boar 1 1`, `god`, `heal`, `tod 0`)
+
+### ZNetScene Tools (Prefab Registry)
+- **`znetscene_search_prefabs`** - Search for prefabs by name (partial match, case-insensitive)
+- **`znetscene_get_prefab`** - Get detailed prefab information by exact name
+- **`znetscene_list_prefab_names`** - List all available prefab names with optional prefix filter
+
+### Unity Explorer Tools (Scene Inspection)
+- **`unity_search_objects`** - Search for Unity objects (GameObjects, Components) by name/type with filters
+- **`unity_search_singletons`** - Find singleton instances by type name
+- **`unity_get_loaded_scenes`** - Get list of all currently loaded scenes (including DontDestroyOnLoad)
+- **`unity_get_scene_roots`** - Get root GameObjects in a scene by handle
+- **`unity_inspect_object`** - Get detailed information about any Unity object by instance ID
+- **`unity_read_component`** - Read component data from a GameObject by type name
+- **`unity_get_children`** - Get child GameObjects of a parent by instance ID
 
 ### Event Channels
 - `player/death` - Player death notifications
@@ -113,14 +130,28 @@ This mod requires two other components to function:
    Now you can access any of the available tools.
    ```
 
+## 💡 Example Usage
+
 ```
 AI: "What's the player's current health?"
-> Uses get_player_health
+> Uses player_get_health
 > Returns: { "success": true, "health": 25.0, "maxHealth": 25.0, "healthPercentage": 100.0 }
 
 AI: "Where is the player?"
-> Uses get_player_position  
+> Uses player_get_position  
 > Returns: { "success": true, "position": { "x": 123.45, "y": 50.0, "z": -67.89 } }
+
+AI: "Spawn 5 boars near me"
+> Uses run_command with "spawn Boar 5"
+> Returns: { "success": true, "command": "spawn Boar 5", "queued": true }
+
+AI: "Search for all wolf prefabs"
+> Uses znetscene_search_prefabs with nameFilter: "wolf"
+> Returns: List of matching prefabs (Wolf, Fenring, etc.)
+
+AI: "Find the Player singleton"
+> Uses unity_search_singletons with typeFilter: "Player"
+> Returns: Player singleton instance with ID for further inspection
 ```
 
 ## 📄 License
