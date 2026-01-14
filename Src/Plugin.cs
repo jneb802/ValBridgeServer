@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using BepInEx;
 using BepInEx.Logging;
 using Lib.GAB;
@@ -25,6 +26,7 @@ namespace ValBridgeServer
     }
 
     [BepInPlugin(ModGUID, ModName, ModVersion)]
+    [BepInDependency("com.sinai.unityexplorer", BepInDependency.DependencyFlags.SoftDependency)]
     public class ValBridgeServerPlugin : BaseUnityPlugin
     {
         private const string ModName = "ValBridgeServer";
@@ -57,6 +59,34 @@ namespace ValBridgeServer
 
                 // Register tool classes (one per Valheim class)
                 _server.Tools.RegisterToolsFromInstance(new PlayerTools());
+                _server.Tools.RegisterToolsFromInstance(new ZNetSceneTools());
+                _server.Tools.RegisterToolsFromInstance(new TerminalTools());
+
+                // Conditionally register UnityExplorer tools if available
+                if (IsUnityExplorerLoaded())
+                {
+                    try
+                    {
+                        var ueTools = new UnityExplorerTools();
+                        if (ueTools.IsInitialized)
+                        {
+                            _server.Tools.RegisterToolsFromInstance(ueTools);
+                            ModLogger.LogInfo("UnityExplorer detected - unity tools registered");
+                        }
+                        else
+                        {
+                            ModLogger.LogWarning("UnityExplorer detected but APIs could not be resolved");
+                        }
+                    }
+                    catch (Exception ueEx)
+                    {
+                        ModLogger.LogWarning($"Failed to initialize UnityExplorer tools: {ueEx.Message}");
+                    }
+                }
+                else
+                {
+                    ModLogger.LogInfo("UnityExplorer not detected - unity tools not available");
+                }
 
                 // Register event channels
                 _server.Events.RegisterChannel("player/death", "Player death events");
@@ -134,6 +164,15 @@ namespace ValBridgeServer
             throw new Exception(
                 "GABP server config not found. Ensure GABS is running and game was started via GABS. " +
                 $"Expected: GABP_SERVER_PORT and GABP_TOKEN environment variables, or bridge.json at {legacyPath}");
+        }
+
+        /// <summary>
+        /// Check if UnityExplorer is loaded at runtime
+        /// </summary>
+        private bool IsUnityExplorerLoaded()
+        {
+            return AppDomain.CurrentDomain.GetAssemblies()
+                .Any(a => a.GetName().Name.StartsWith("UnityExplorer"));
         }
 
         private void OnDestroy()
